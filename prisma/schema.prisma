@@ -1,0 +1,223 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  /// Conexão do app (na Vercel/Neon: a URL com pooling)
+  url       = env("DATABASE_URL")
+  /// Conexão direta, usada para criar/alterar tabelas (na Vercel/Neon: DATABASE_URL_UNPOOLED)
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+/// Usuário da agência (social media). Auth ainda não implementada.
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  settings  Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  clients   Client[]
+  tasks     Task[]
+  tags      Tag[]
+  members   Member[]
+}
+
+/// Colaborador da agência (social media, designer…). Cada um atende seus clientes.
+/// TODO(auth): quando houver login, vincular cada Member a uma conta de usuário.
+model Member {
+  id        String   @id @default(cuid())
+  name      String
+  role      String?
+  color     String   @default("#6366f1")
+  avatarUrl String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clients   Client[]
+  tasks     Task[]
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+/// Cliente atendido = um perfil do Instagram.
+model Client {
+  id         String      @id @default(cuid())
+  name       String
+  handle     String      @default("")
+  bio        String?
+  website    String?
+  avatarUrl  String?
+  color      String      @default("#6366f1")
+  /// Meta de médio prazo exibida no Roadmap
+  targetDate DateTime?
+  /// Colaborador responsável pelo cliente
+  ownerId    String?
+  owner      Member?     @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  userId     String
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks      Task[]
+  posts      Post[]
+  shareLinks ShareLink[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([userId])
+}
+
+/// Fluxo da agência: Não iniciada → Em desenvolvimento → Ag. aprovação / Aguardando retorno / Externo → Concluída
+enum TaskStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  AWAITING_APPROVAL
+  AWAITING_RETURN
+  EXTERNAL
+  DONE
+}
+
+/// Alinhado à Matriz de Eisenhower:
+/// URGENT = Urgente + Importante · HIGH = Importante, não urgente
+/// MEDIUM = Urgente, não importante · LOW = Nem urgente nem importante
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Task {
+  id               String     @id @default(cuid())
+  title            String
+  description      String?
+  status           TaskStatus @default(NOT_STARTED)
+  priority         Priority   @default(MEDIUM)
+  dueDate          DateTime?
+  /// Registrada automaticamente quando a tarefa entra em andamento
+  startDate        DateTime?
+  /// Registrada automaticamente ao concluir
+  completedAt      DateTime?
+  estimatedMinutes Int?
+  position         Float      @default(0)
+  clientId         String?
+  client           Client?    @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  /// Responsável pela tarefa (se vazio, vale o responsável do cliente)
+  assigneeId       String?
+  assignee         Member?    @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+  userId           String
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentId         String?
+  parent           Task?      @relation("Subtasks", fields: [parentId], references: [id], onDelete: Cascade)
+  subtasks         Task[]     @relation("Subtasks")
+  tags             Tag[]
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, dueDate])
+  @@index([parentId])
+}
+
+model Tag {
+  id     String @id @default(cuid())
+  name   String
+  color  String @default("#64748b")
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks  Task[]
+
+  @@unique([userId, name])
+}
+
+/* ---------------- Conteúdo ---------------- */
+
+enum PostType {
+  /// Foto única ou carrossel (2+ mídias)
+  POST
+  REEL
+  STORY
+}
+
+enum PostStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  SCHEDULED
+  PUBLISHED
+}
+
+model Post {
+  id            String       @id @default(cuid())
+  clientId      String
+  client        Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  type          PostType     @default(POST)
+  status        PostStatus   @default(DRAFT)
+  caption       String       @default("")
+  /// Roteiro / briefing do criativo (cenas, falas, textos de tela…)
+  script        String?
+  firstComment  String?
+  location      String?
+  /// @handles de colaboradores (máx. 3)
+  collaborators String[]     @default([])
+  /// "1:1" | "4:5" | "3:4" | "1.91:1" | "9:16"
+  aspectRatio   String       @default("4:5")
+  scheduledAt   DateTime?
+  /// Fixado no topo do perfil (máx. 3)
+  pinned        Boolean      @default(false)
+  /// Reel: também aparece na grade do feed
+  shareToFeed   Boolean      @default(true)
+  /// Reel: capa enviada separadamente (senão usa um frame do vídeo)
+  coverUrl      String?
+  coverTime     Float        @default(0)
+  /// Ordem manual na grade (menor = topo). Stories usam para a ordem da sequência.
+  feedPosition  Float        @default(0)
+  media         MediaAsset[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([clientId, type])
+}
+
+enum MediaKind {
+  IMAGE
+  VIDEO
+}
+
+model MediaAsset {
+  id        String    @id @default(cuid())
+  postId    String?
+  post      Post?     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  kind      MediaKind
+  /// Sempre /api/media/<id> (estável, independe de onde o arquivo está)
+  url       String
+  /// Em produção: endereço do arquivo no Vercel Blob. Vazio = arquivo em disco local.
+  blobUrl   String?
+  mimeType  String
+  width     Int?
+  height    Int?
+  duration  Float?
+  alt       String?
+  order     Int       @default(0)
+  createdAt DateTime  @default(now())
+
+  @@index([postId])
+}
+
+/// Versão congelada da prévia, enviada ao cliente (somente leitura).
+model ShareLink {
+  id         String    @id @default(cuid())
+  token      String    @unique
+  clientId   String
+  client     Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  title      String
+  message    String?
+  /// Cópia dos posts/perfil no momento da geração
+  snapshot   Json
+  postCount  Int       @default(0)
+  viewCount  Int       @default(0)
+  lastViewAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([clientId])
+}
