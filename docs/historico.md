@@ -28,3 +28,10 @@
 
 - A pasta permanente aparece **vinculada a um projeto da Vercel** chamado `pmedia` (pasta `.vercel/` e arquivo `.env.local` com as variáveis da Vercel, criados hoje às 09:34). Ambos são ignorados pelo Git e não vão para o repositório. Ainda não se sabe se o deploy foi feito (a confirmar com o usuário).
 - `CLAUDE.md` e `docs/`, criados em 08/11, são enviados ao GitHub, a pedido do usuário. Não houve mudança de código desde o push de 05/11.
+- **Primeiro deploy no ar**, com autorização do usuário ("faça tudo"):
+  - Na pasta do projeto, as cópias que o app tinha trazido por engano (`criare-site/`, `plife/` e `db.log`) foram movidas para `D:\Projetos-Claude\_arquivo\copias-sessao-2026-11-12\`, sem apagar nada.
+  - Pela Vercel CLI (`npx vercel@48`, já logada na conta do usuário): foi criado o Blob `pmedia-midias`, e o usuário o conectou ao projeto pelo painel. Um primeiro store criado pela CLI ficou sem vínculo e foi removido. O GitHub já estava conectado ao projeto.
+  - O código foi adaptado ao formato novo do Blob (commit `7eb1827`).
+  - O usuário criou o banco na Neon e o ligou à Vercel. O push disparou o deploy, que ficou **Ready**, e o `prisma db push` criou as tabelas no Neon.
+  - Endereço de produção: **https://pmedia-gilt.vercel.app**. Testado de fora: `/` redireciona para `/login`, as APIs exigem sessão (401) e `/share/<token>` é público e consulta o banco.
+  - Pendente: a variável `TEAM_PASSWORD` ainda não existe na Vercel. Sem ela, ninguém entra em produção. É preciso criá-la e fazer um novo deploy.

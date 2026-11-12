@@ -94,3 +94,18 @@ src/components/share/  share-view, pauta-calendar     | src/components/views/  c
 - A pasta está **vinculada ao projeto `pmedia` da Vercel** (`.vercel/project.json` e `.env.local`, gerados pela Vercel CLI). Os dois são ignorados pelo Git: nunca commitar nem copiar o conteúdo do `.env.local` para docs.
 - Deploy na Vercel: o vínculo existe, mas se o site está publicado ainda está **a confirmar**. A regra continua: não fazer deploy sem autorização explícita.
 - Antes de rodar localmente nesta pasta: `npm install` (o `node_modules/` não foi copiado).
+
+## Atualização 12/11/2026 (tarde): PMedia publicado na Vercel
+
+- **Produção:** https://pmedia-gilt.vercel.app. Também respondem `pmedia-paulo-jesus-s-projects.vercel.app` e, para a branch main, `pmedia-git-main-paulo-jesus-s-projects.vercel.app`. Time Vercel: `paulo-jesus-s-projects`, projeto `pmedia`.
+- **Deploy automático:** cada `git push` na `main` publica sozinho (GitHub conectado). Continua valendo a regra: só fazer push ou deploy com autorização.
+- **Infra:**
+  - Banco: projeto Neon "PMedia" (Ohio), ligado pela integração da Neon, que cria `DATABASE_URL` e `DATABASE_URL_UNPOOLED`.
+  - Mídias: Blob `pmedia-midias`, no formato novo (`BLOB_STORE_ID` + OIDC, sem `BLOB_READ_WRITE_TOKEN`).
+  - `NEXT_PUBLIC_DIRECT_UPLOAD=1`.
+- **Vercel CLI:** usar `npx -y vercel@48 ...` (não há instalação global; o login já está salvo). Ex.: `env ls`, `ls pmedia`, `inspect <url> --logs`.
+- **Pendências do deploy:**
+  - Criar `TEAM_PASSWORD` (e, de preferência, `AUTH_SECRET`) na Vercel e republicar. O usuário define a senha; o Claude não define nem manipula senhas.
+  - Depois, testar com o usuário o login, o upload de foto e vídeo (Blob) e a geração do link do cliente em produção.
+- **Esta atualização substitui** a linha "Deploy na Vercel: aguardando autorização" das Pendências e o "a confirmar" da atualização anterior.
+- **Pasta de cópias:** em `D:\Projetos-Claude\_arquivo\copias-sessao-2026-11-12\` estão as cópias movidas para fora do repositório. Podem ser apagadas.
