@@ -27,7 +27,7 @@ ${sub ? `<text x="50%" y="${startY + lines.length * size * 1.1 + size * 0.4}" te
 </svg>`;
   const id = createId();
   let blobUrl: string | null = null;
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
+  if (process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID) {
     // seed apontando para produção: sobe a arte para o Vercel Blob
     const { put } = await import("@vercel/blob");
     blobUrl = (await put(`media/${id}.svg`, svg, { access: "public", contentType: "image/svg+xml", addRandomSuffix: false })).url;

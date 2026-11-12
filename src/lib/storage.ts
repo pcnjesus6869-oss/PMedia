@@ -11,7 +11,13 @@ import { pipeline } from "node:stream/promises";
  *  - Local: disco em ./storage/uploads.
  * Em ambos os casos o app usa a URL estável /api/media/<id>.
  */
-export const blobEnabled = () => Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+/**
+ * Duas formas de a Vercel conectar o Blob:
+ *  - antiga: chave BLOB_READ_WRITE_TOKEN
+ *  - nova (2026): BLOB_STORE_ID + identidade do projeto (OIDC, automática na Vercel)
+ * O SDK @vercel/blob resolve as duas sozinho.
+ */
+export const blobEnabled = () => Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
 
 /** Só aceitamos URLs do Blob da própria loja (evita registrar links externos). */
 export function isOwnBlobUrl(url: string) {

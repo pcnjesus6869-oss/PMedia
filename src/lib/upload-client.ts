@@ -51,9 +51,9 @@ export async function uploadMedia(file: File): Promise<MediaDTO & { duration?: n
   if (DIRECT) {
     const ext = EXT[file.type];
     if (!ext) throw new Error(`Formato não suportado (${file.type || "desconhecido"})`);
-    const { upload } = await import("@vercel/blob/client");
+    const { uploadPresigned } = await import("@vercel/blob/client");
     const id = newId();
-    const blob = await upload(`media/${id}.${ext}`, file, { access: "public", handleUploadUrl: "/api/media/upload", contentType: file.type, multipart: file.size > 20 * 1024 * 1024 });
+    const blob = await uploadPresigned(`media/${id}.${ext}`, file, { access: "public", handleUploadUrl: "/api/media/upload", contentType: file.type, multipart: file.size > 20 * 1024 * 1024 });
     const res = await fetch("/api/media/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
